@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+option go_package = "github.com/SolmateDev/go-rust-translator/solana";
+
+package solana;
+
+import "proto/basic.proto";
+
+/*
+Imports are not allowed in this directory as this proto is used in a Rust binary.
+*/
+
+service Broadcast {
+    //rpc SendTx(SendTxRequest) returns (SendTxResponse) {}
+    rpc SendTx(SendBatchRequest) returns (SendBatchResponse) {}
+    rpc RunGenesis(Genesis) returns (basic.Empty) {}
+    rpc RunInitializeTokenAccount(InitializeTokenAccount) returns (basic.Keypair) {}
+    rpc RunCreateAccount(CreateAccount) returns (basic.Keypair) {}
+    rpc RunMint(Mint) returns (basic.Empty) {}
+}
+
+
+
+
+
+message SendBatchRequest{
+    repeated bytes tx = 1;
+    ConfirmationLevel confirmation_level = 2;
+}
+
+enum ConfirmationLevel{
+    PROCESSED=0;
+    CONFIRMED=1;
+    FINALIZED=2;
+}
+
+message SendBatchResponse{
+    repeated bytes signature = 1;
+}
+
+message Genesis{
+    basic.Keypair payer = 1;
+    basic.Keypair mint = 2;
+    basic.Pubkey owner = 3;
+    // u8
+    bytes decimals = 4;
+}
+
+message InitializeTokenAccount {
+    //mint: Pubkey,
+    basic.Pubkey mint = 1;
+    //owner_account: String,
+    basic.Keypair owner_account = 2;
+}
+
+message Mint {
+    //payer: String,        
+    basic.Keypair payer = 1;
+    //signer: String,
+    basic.Keypair signer = 2;
+    //mint_pubkey: Pubkey,
+    basic.Pubkey mint = 3;
+    // recipient: Option<Pubkey>,
+    basic.Pubkey recipient = 4;
+    //quantity: u64,
+    uint64 quantity = 5;
+}
+
+
+message CreateAccount {
+    // mint_pubkey: Pubkey,
+    basic.Pubkey mint = 1;
+    //owner_pubkey: Pubkey,
+    basic.Pubkey owner = 2;
+    //payer: String,
+    basic.Keypair payer = 3;
+}
+

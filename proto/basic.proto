@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option go_package = "github.com/SolmateDev/go-rust-translator/basic";
+
+package basic;
+
+message AccountInfo{
+    uint64 slot = 1;
+    bytes value = 2;
+}
+
+message SignedTx{
+    bytes tx = 1;
+}
+
+message TxStatusWithSlot{
+    TxStatus status = 1;
+    uint64 slot = 2;
+}
+
+enum TxStatus{
+    PROCESSED=0;
+    CONFIRMED=1;
+    FINALIZED=2;
+}
+
+message Empty{
+
+}
+
+message Pubkey{
+    bytes data = 1;
+}
+
+message Keypair{
+    oneof input{
+        bytes seed = 1;
+        bytes private_key = 2;
+    }
+}
+
+message ProgramId{
+    Pubkey id = 1;
+}

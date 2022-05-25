@@ -1,0 +1,279 @@
+syntax = "proto3";
+
+option go_package = "github.com/SolmateDev/go-rust-translator/serum";
+
+import "proto/basic.proto";
+
+package serum;
+
+/*
+Imports are not allowed in this directory as this proto is used in a Rust binary.
+*/
+
+service Dex {
+    rpc GetMarketPubkeys(MarketRequest) returns (MarketPubkeys) {}
+    rpc ListMarket(ListMarketRequest) returns (ListMarketResponse) {}
+    rpc ConsumeEvents(ConsumeEventsRequest) returns (basic.SignedTx) {}
+    rpc InitOpenOrder(InitOpenOrderRequest) returns (basic.SignedTx) {}
+    rpc NewOrder(Order) returns (basic.SignedTx) {}
+    rpc CancelOrder(CancelOrderRequest) returns (basic.SignedTx) {}
+    rpc SettleFunds(SettleFundsRequest) returns (basic.SignedTx) {}
+    rpc CloseOpenOrders(CloseOpenOrderRequest) returns (basic.SignedTx) {}
+    rpc MatchOrders(MatchOrdersRequest) returns (basic.SignedTx) {}
+    rpc MonitorQueue(MonitorQueueRequest) returns (stream Event) {}
+
+    //rpc RunConsumeEventUpdate(ConsumeEventUpdate) returns (basic.Empty) {}
+    //rpc RunMatchOrders(MatchOrders) returns (basic.SignedTx) {}
+    //rpc RunPrintEventQueue(PrintEventQueue) returns (basic.Empty) {}
+    //rpc RunWholeShebang(WholeShebang) returns (basic.Empty) {}
+}
+
+message MarketState{
+    oneof market{
+        basic.Pubkey id = 1;
+        MarketPubkeys state = 2;
+    }
+}
+
+message InitOpenOrderRequest{
+    basic.ProgramId dex_program_id = 1;
+    basic.Keypair owner = 2;
+    MarketState market = 3;
+    basic.Pubkey orders = 4;
+}
+
+message CloseOpenOrderRequest{
+    basic.ProgramId dex_program_id = 1;
+    basic.Keypair owner = 2;
+    MarketState market = 3;
+    basic.Pubkey orders = 4;
+}
+
+message CancelOrderRequest{
+    basic.ProgramId dex_program_id = 1;
+    basic.Keypair owner = 2;
+    MarketState market = 3;
+    basic.Pubkey orders = 4;
+    uint64 id = 5;
+}
+
+
+
+message ListMarketResponse{
+    MarketPubkeys market_pubkeys = 1;
+    basic.SignedTx tx = 2;
+}
+
+
+message Order{
+    oneof order {
+        NewOrderInstructionV3 v3 = 1;
+    }
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 2;
+    //: String (file path)
+    basic.Keypair payer = 3;
+    basic.Pubkey wallet = 4;
+    MarketState market = 5;
+    // optional
+    basic.Pubkey orders = 6;
+}
+// place_order(r_client: Arc<Mutex<RpcClient>>, program_id: &Pubkey, payer: &Keypair, wallet: &Pubkey, state: &MarketPubkeys, orders: &mut Option<Pubkey>, new_order: NewOrderInstructionV3) -> Result<()>
+
+message OrderStatus{
+    basic.TxStatusWithSlot status_with_slot = 1;
+}
+
+
+
+enum SelfTradeBehavior {
+    DecrementTake=0;
+    CancelProvide=1;
+    AbortTransaction=2;
+}
+
+enum OrderType {
+    Limit=0;
+    ImmediateOrCancel=1;
+    PostOnly=2;
+}
+
+message NewOrderInstructionV3{
+    // true=buy; false=sell;
+    bool side = 1;
+    // non-zero
+    uint64 limit_price = 2;
+    // non-zero
+    uint64 max_coin_qty = 3;
+    // non-zero
+    uint64 max_native_pc_qty_including_fees = 4;
+    
+    SelfTradeBehavior self_trade_behavior = 5;
+    OrderType order_type = 6;
+    uint64 client_order_id = 7;
+    // u16 limit
+    uint32 limit = 8;
+}
+
+
+
+
+/*
+pub struct NewOrderInstructionV3 {
+    
+    #[cfg_attr(
+        test,
+        proptest(strategy = "(1u64..=std::u64::MAX).prop_map(|x| NonZeroU64::new(x).unwrap())")
+    )]
+    pub max_native_pc_qty_including_fees: NonZeroU64,
+
+    pub self_trade_behavior: SelfTradeBehavior,
+
+    pub order_type: OrderType,
+    pub client_order_id: u64,
+    pub limit: u16,
+}
+    */
+
+
+
+message Event{
+    oneof event{
+        Bid bid = 1;
+        Ask ask = 2;
+    }
+}
+
+message Bid{
+
+}
+
+message Ask{
+
+}
+
+
+message ConsumeEventUpdate{
+    int64 crank_count = 1;
+    string status = 2;
+}
+
+message MarketPubkeys{
+    basic.Pubkey market = 1;
+    basic.Pubkey req_q = 2;
+    basic.Pubkey event_q = 3;
+    basic.Pubkey bids = 4;
+    basic.Pubkey asks = 5;
+    basic.Pubkey coin_vault = 6;
+    basic.Pubkey pc_vault = 7;
+    basic.Pubkey vault_signer_key = 8;
+}
+
+
+
+message ConsumeEventsRequest {
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 1;
+    //: String (file path)
+    basic.Keypair payer = 2;
+    //: Pubkey,
+    MarketState market = 3;
+    //: Pubkey,
+    basic.Pubkey coin_wallet = 4;
+    //: Pubkey,
+    basic.Pubkey pc_wallet = 5;
+    //: usize,
+    uint64 num_workers = 6;
+    //: usize,
+    uint64 events_per_worker = 7;
+    // num_accounts: Option<usize>,
+    uint64 num_accounts = 8;
+    //: String,
+    string log_directory = 9;
+    // : Option<u64>,
+    uint64 max_q_length = 10;
+    //: Option<u64>,
+    uint64 max_wait_for_events_delay = 11;
+}
+
+message MatchOrdersRequest{
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 1;
+    //    : String,
+    basic.Keypair payer = 2;
+    //    : Pubkey,        
+    MarketState market = 3;
+    //    : Pubkey,
+    basic.Pubkey coin_wallet = 4;
+    //    : Pubkey,
+    basic.Pubkey pc_wallet = 5;
+}
+
+message MonitorQueueRequest {
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 1;
+    //: Pubkey,
+    MarketState market = 2;
+    //: u16,
+    uint32 port = 3;
+}
+
+message PrintEventQueue {
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 1;
+    //: Pubkey,
+    basic.Pubkey market = 2;
+}
+
+message WholeShebang {
+    //: String,
+    basic.Keypair payer = 1;
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 2;
+}
+
+message SettleFundsRequest {
+    //: String,
+    basic.Keypair payer = 1;
+    //: Pubkey,
+    basic.ProgramId dex_program_id = 2;
+    //: Pubkey,
+    MarketState market = 3;
+    //: Pubkey,
+    basic.Pubkey orders = 4;
+    // : Pubkey,
+    basic.Pubkey coin_wallet = 5;
+    //: Pubkey,
+    basic.Pubkey pc_wallet = 6;
+    //: Option<String>,
+    basic.Keypair signer = 7;
+}
+
+message ListMarketRequest {
+    //payer: String,
+    basic.Keypair payer = 1;
+    //dex_program_id: Pubkey,
+    basic.ProgramId dex_program_id = 2;
+    //coin_mint: Pubkey,
+    basic.Pubkey coin_mint = 3;
+    //pc_mint: Pubkey,
+    basic.Pubkey pc_mint = 4;
+    // coin_lot_size: Option<u64>,
+    uint64 coin_lot_size = 5;
+    //pc_lot_size: Option<u64>,
+    uint64 pc_lot_size = 6;
+}
+
+message InitializeTokenAccount {
+    //mint: Pubkey,
+    basic.Pubkey mint = 1;
+    //owner_account: String,
+    basic.Pubkey owner_account = 2;
+}
+
+
+message MarketRequest{
+    basic.ProgramId dex_program_id = 1;
+    basic.Pubkey market = 2;
+}
+
